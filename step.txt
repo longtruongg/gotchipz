@@ -1,0 +1,5 @@
+1: check-in[-]
+2: mint Gotchipus [x]
+3: claim wearable [x]
+4: fetch all gotchipus id[x]
+5: Pet[-]

@@ -2,57 +2,27 @@ package main
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"fmt"
 	"log"
-	"math/big"
-	"os"
+	"main/cfg"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-var (
-	BASE_URL         = "https://testnet.dplabs-internal.com"
-	CONTRACT_ADDRESS = common.HexToAddress("0x0000000038f050528452d6da1e7aacfa7b3ec0a8")
-	MINT_METHOD_ID   = "5b70ea9f" //avoid 0x
-	ADDRESS          = common.HexToAddress("your-address")
-)
-
 func main() {
-	provider, err := ethclient.Dial(BASE_URL)
+	provider, err := ethclient.Dial(cfg.BaseUrl)
 	if err != nil {
 		log.Fatalf("Failed to connect to Ethereum client: %v", err)
 	}
 	ctx := context.Background()
-	prik, err := readKey()
-	nonce, err := provider.PendingNonceAt(ctx, ADDRESS)
+	prik, err := cfg.ReadKey()
 	if err != nil {
-		log.Fatalf("Failed to get nonce: %v", err)
+		log.Fatalf("can not read prikey %s", err)
 	}
-	gasPrice, err := provider.SuggestGasPrice(ctx)
+	signature, err := cfg.GenSignature(ctx, provider, cfg.PET, prik)
 	if err != nil {
-		log.Fatalf("Failed to get gasprice: %v", err)
-	}
-	chainId, err := provider.ChainID(ctx)
-	if err != nil {
-		log.Fatalf("Failed to get chainid: %v", err)
-	}
-
-	tx := types.NewTx(&types.LegacyTx{
-		Nonce:    nonce,
-		To:       &CONTRACT_ADDRESS,
-		Data:     common.Hex2Bytes(MINT_METHOD_ID),
-		Value:    big.NewInt(0),
-		Gas:      300000,
-		GasPrice: gasPrice,
-	})
-	signature, err := types.SignTx(tx, types.LatestSignerForChainID(chainId), prik)
-	if err != nil {
-		log.Fatalf("Failed to sign transaction: %v", err)
+		log.Fatalf("can not sign signature %s", err)
 	}
 	err = provider.SendTransaction(ctx, signature)
 	if err != nil {
@@ -67,12 +37,4 @@ func main() {
 	} else {
 		fmt.Println("Tx SUCCESS! Minted. ", signature.Hash().String())
 	}
-}
-func readKey() (*ecdsa.PrivateKey, error) {
-	//create .env file, prik=........
-	str, err := os.ReadFile(".env")
-	if err != nil {
-		return nil, fmt.Errorf("cannot open file env")
-	}
-	return crypto.HexToECDSA(string(str)[5:])
 }
