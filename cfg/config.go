@@ -8,7 +8,7 @@ var (
 	MINT_METHOD_ID        = "5b70ea9f" //avoid 0x
 	CLAIM_WEARABLE        = "0677781a"
 	PET                   = "a07d7972"
-	ADDRESS               = common.HexToAddress("your-address")
+	ADDRESS               = common.HexToAddress("")
 	DOMAIN_PHAROS         = "testnet.pharosnetwork.xyz"
 	DOMAIN_PHAROS_SIGN_IN = "https://api.pharosnetwork.xyz/sign/in"
 )

@@ -20,7 +20,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("can not read prikey %s", err)
 	}
-	signature, err := cfg.GenSignature(ctx, provider, cfg.PET, prik)
+	signature, err := cfg.GenSignature(ctx, provider, cfg.CLAIM_WEARABLE, prik)
 	if err != nil {
 		log.Fatalf("can not sign signature %s", err)
 	}
@@ -37,4 +37,9 @@ func main() {
 	} else {
 		fmt.Println("Tx SUCCESS! Minted. ", signature.Hash().String())
 	}
+	res, err := cfg.FetchAllGotChipus(ctx, cfg.ADDRESS.String())
+	if err != nil {
+		log.Fatalf("failed to fetch chip us: %v", err)
+	}
+	fmt.Println("Chip US: ", res.Ids)
 }

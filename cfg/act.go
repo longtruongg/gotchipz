@@ -1,6 +1,7 @@
 package cfg
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/ecdsa"
@@ -17,6 +18,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
+
+var X_FILE = "x_ids.txt"
 
 func GenSignature(ctx context.Context, provider *ethclient.Client, data string, prik *ecdsa.PrivateKey) (*types.Transaction, error) {
 	ctxTime, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -65,7 +68,31 @@ func FetchAllGotChipus(ctx context.Context, wallet string) (*Gotchipx, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal gotchipus: %v", err)
 	}
+	if err := saveIdsToFile(gotchipx.Ids); err != nil {
+		return nil, fmt.Errorf("failed to save gotchipusId to file: %v", err)
+	}
 	return gotchipx, nil
+}
+func saveIdsToFile(ids []string) error {
+	fil, err := os.OpenFile(X_FILE, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+	if err != nil {
+		return fmt.Errorf("failed to open x_ids.txt")
+	}
+	defer fil.Close()
+	scanner := bufio.NewScanner(fil)
+	for _, id := range ids {
+		if scanner.Scan() {
+			fisr := scanner.Text()
+			if id == fisr {
+				return fmt.Errorf("ids already exist %s", err)
+			}
+		}
+		_, err := fmt.Fprintln(fil, id)
+		if err != nil {
+			return fmt.Errorf("failed to write to file: %v", err)
+		}
+	}
+	return nil
 }
 func doRequest(ctx context.Context, method, url string, data []byte) ([]byte, error) {
 	client := &http.Client{}
