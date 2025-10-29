@@ -2,35 +2,44 @@ package cfg
 
 import (
 	"fmt"
-	"time"
 )
 
 // data to signature
-func dataSign(wallet, nonce, issued string) string {
-	return fmt.Sprintf("testnet.pharosnetwork.xyz wants you to sign in with your Ethereum account:\n%s\n\nI accept the Pharos Terms of Service: testnet.pharosnetwork.xyz/privacy-policy/Pharos-PrivacyPolicy.pdf\n\nURI: https://testnet.pharosnetwork.xyz\n\nVersion: 1\n\nChain ID: 688688\n\nNonce: %s\n\nIssued At: %s\nfor  https://testnet.pharosnetwork.xyz",
-		wallet, nonce, issued)
+func dataSign(wallet, issued string) string {
+	return fmt.Sprintf("testnet.pharosnetwork.xyz wants you to sign in with your Ethereum account:\n%s\n\nI accept the Pharos Terms of Service: testnet.pharosnetwork.xyz/privacy-policy/Pharos-PrivacyPolicy.pdf\n\nURI: https://testnet.pharosnetwork.xyz\n\nVersion: 1\n\nChain ID: 688689\n\nNonce: 0\n\nIssued At: %s\nfor  https://testnet.pharosnetwork.xyz",
+		wallet, issued)
 }
 
-type PayloadSign struct {
-	Address    string    `json:"address"`
-	ChainId    string    `json:"chain_id"`
-	Domain     string    `json:"domain"`      // domain pharos
-	InviteCode string    `json:"invite_code"` // hardcode
-	Nonce      string    `json:"nonce"`
-	Signature  string    `json:"signature"` // gen signature
-	Timestamp  time.Time `json:"timestamp"`
-	Wallet     string    `json:"wallet" ` //defaultOkx
+type PharosTask struct {
+	Address string `json:"address"`
+	TaskId  int    `json:"task_id"` // 401 - transfer task
+	TxHash  string `json:"tx_hash"`
 }
-type Response struct {
+type PharosTaskResult struct {
+	Code int `json:"code"`
+	Data struct {
+		TaskId   int  `json:"task_id"`
+		Verified bool `json:"verified"`
+	} `json:"data"`
+	Msg string `json:"msg"`
+}
+type PayloadSign struct {
+	Address   string `json:"address"`
+	Signature string `json:"signature"`
+	Wallet    string `json:"wallet"`
+	Nonce     string `json:"nonce"`
+	ChainID   string `json:"chain_id"`
+	Timestamp string `json:"timestamp"`
+	Domain    string `json:"domain"`
+}
+type ResponsePharosHub struct {
 	Code int `json:"code"`
 	Data struct {
 		Jwt string `json:"jwt"`
 	} `json:"data"`
 	Msg string `json:"msg"`
 }
-type SignIn struct {
-	Address string `json:"address"`
-}
+
 type Gotchipx struct {
 	Balance       string        `json:"balance"`
 	Ids           []string      `json:"ids"`

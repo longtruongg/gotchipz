@@ -6,12 +6,11 @@ import (
 	"log"
 	"main/cfg"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 func main() {
-	provider, err := ethclient.Dial(cfg.BaseUrl)
+	provider, err := ethclient.Dial("https://atlantic.dplabs-internal.com")
 	if err != nil {
 		log.Fatalf("Failed to connect to Ethereum client: %v", err)
 	}
@@ -20,26 +19,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("can not read prikey %s", err)
 	}
-	signature, err := cfg.GenSignature(ctx, provider, cfg.CLAIM_WEARABLE, prik)
+	hub, err := cfg.SignaturePharosHub(ctx, provider, prik)
 	if err != nil {
-		log.Fatalf("can not sign signature %s", err)
+		log.Fatalf("can not connect to Pharos Hub %v", err)
 	}
-	err = provider.SendTransaction(ctx, signature)
-	if err != nil {
-		log.Fatalf("cannot send tx %v", err)
-	}
-	rep, err := bind.WaitMined(ctx, provider, signature)
-	if err != nil {
-		log.Fatalf("failed to wait tx %v", err)
-	}
-	if rep.Status == 0 {
-		fmt.Println("Tx FAILED (reverted). Check logs or use Tenderly for decode.")
-	} else {
-		fmt.Println("Tx SUCCESS! Minted. ", signature.Hash().String())
-	}
-	res, err := cfg.FetchAllGotChipus(ctx, cfg.ADDRESS.String())
-	if err != nil {
-		log.Fatalf("failed to fetch chip us: %v", err)
-	}
-	fmt.Println("Chip US: ", res.Ids)
+	fmt.Println(hub)
+
 }
