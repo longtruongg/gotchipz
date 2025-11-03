@@ -1,19 +1,22 @@
 package cfg
 
 import (
-	"fmt"
-)
+	"context"
+	"crypto/ecdsa"
 
-// data to signature
-func dataSign(wallet, issued string) string {
-	return fmt.Sprintf("testnet.pharosnetwork.xyz wants you to sign in with your Ethereum account:\n%s\n\nI accept the Pharos Terms of Service: testnet.pharosnetwork.xyz/privacy-policy/Pharos-PrivacyPolicy.pdf\n\nURI: https://testnet.pharosnetwork.xyz\n\nVersion: 1\n\nChain ID: 688689\n\nNonce: 0\n\nIssued At: %s\nfor  https://testnet.pharosnetwork.xyz",
-		wallet, issued)
-}
+	"github.com/ethereum/go-ethereum/ethclient"
+)
 
 type PharosTask struct {
 	Address string `json:"address"`
 	TaskId  int    `json:"task_id"` // 401 - transfer task
 	TxHash  string `json:"tx_hash"`
+}
+
+type ParamHub struct {
+	Ctx      context.Context
+	Provider *ethclient.Client
+	Key      *ecdsa.PrivateKey
 }
 type PharosTaskResult struct {
 	Code int `json:"code"`

@@ -1,0 +1,7 @@
+[
+    {
+        "name": "arc testnet",
+        "chain_id": "5042002",
+        "rpc": "https://rpc.testnet.arc.network"
+    }
+]

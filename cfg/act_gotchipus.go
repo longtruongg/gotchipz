@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"math/big"
 	"net/http"
 	"os"
@@ -60,7 +61,7 @@ func FetchAllGotChipus(ctx context.Context, wallet string) (*Gotchipx, error) {
 	gotchipx := &Gotchipx{}
 
 	ownerUrl := fmt.Sprintf("https://gotchipus.com/api/tokens/gotchipus?owner=%s&includeGotchipusInfo=false", wallet)
-	pay := payHub{
+	pay := PayHub{
 		http.MethodGet,
 		ownerUrl,
 		"",
@@ -101,13 +102,13 @@ func saveIdsToFile(ids []string) error {
 	return nil
 }
 
-type payHub struct {
+type PayHub struct {
 	method string
 	url    string
 	bear   string
 }
 
-func doRequest(ctx context.Context, pay payHub, data []byte) ([]byte, error) {
+func doRequest(ctx context.Context, pay PayHub, data []byte) ([]byte, error) {
 	client := &http.Client{Timeout: 20 * time.Second}
 	req, err := http.NewRequest(pay.method, pay.url, bytes.NewBuffer(data))
 	if err != nil {
@@ -116,8 +117,7 @@ func doRequest(ctx context.Context, pay payHub, data []byte) ([]byte, error) {
 	for k, v := range header {
 		req.Header.Set(k, v)
 	}
-	fmt.Printf("Raw JSON being sent: %s\n", string(data))
-	req.Header.Set("User-Agent", "Pharos-Client/1.0")
+	log.Printf("Raw JSON being sent: %s\n", string(data))
 	if pay.bear != "" {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", pay.bear))
 	}
