@@ -7,7 +7,6 @@ import (
 	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"math/big"
 	"net/http"
@@ -71,7 +70,7 @@ func FetchAllGotChipus(ctx context.Context, wallet string) (*Gotchipx, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch gotchipus: %v", err)
 	}
-	err = json.Unmarshal(result, &gotchipx)
+	err = result.Decode(&gotchipx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal gotchipus: %v", err)
 	}
@@ -108,8 +107,8 @@ type PayHub struct {
 	bear   string
 }
 
-func doRequest(ctx context.Context, pay PayHub, data []byte) ([]byte, error) {
-	client := &http.Client{Timeout: 20 * time.Second}
+func doRequest(ctx context.Context, pay PayHub, data []byte) (*json.Decoder, error) {
+	client := &http.Client{Timeout: 10 * time.Second}
 	req, err := http.NewRequest(pay.method, pay.url, bytes.NewBuffer(data))
 	if err != nil {
 		return nil, fmt.Errorf("can not make request %w", err)
@@ -125,15 +124,12 @@ func doRequest(ctx context.Context, pay PayHub, data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("do request failed: %v", err)
 	}
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read response body failed: %v", err)
-	}
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API returned non-200 status: %d", res.StatusCode, string(body))
+	decoder := json.NewDecoder(res.Body)
+	if !decoder.More() {
+		return nil, fmt.Errorf("no JSON data in response %w", res.StatusCode)
 	}
 	defer res.Body.Close()
-	return io.ReadAll(res.Body)
+	return decoder, nil
 }
 
 var header = map[string]string{

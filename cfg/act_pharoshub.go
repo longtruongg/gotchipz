@@ -24,20 +24,21 @@ import (
 var count = 0 // 91  = task done
 
 // SignaturePharosHub todo verify sign by etherscan it work, but server always return mismatch address :/
-func SignaturePharosHub(hub ParamHub) (interface{}, error) {
+func SignaturePharosHub(hub *ParamHub) (interface{}, error) {
 	ctxTime, cancel := context.WithTimeout(hub.Ctx, 20*time.Second)
 	defer cancel()
 	nonce, err := hub.Provider.PendingNonceAt(ctxTime, ADDRESS)
 	if err != nil {
 		return nil, fmt.Errorf("get nonce failed: %v", err)
 	}
-	signature, err := signSignature(hub)
+
+	checksumAddr := common.HexToAddress(ADDRESS.Hex()).Hex()
+	baseTime := time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
+	signature, err := signSignature(hub, baseTime, nonce)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign signature: %w", err)
 	}
 
-	checksumAddr := common.HexToAddress(ADDRESS.Hex()).Hex()
-	baseTime := time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
 	payload := &PayloadSign{
 		Address:   checksumAddr,
 		ChainID:   "688689",
@@ -58,26 +59,19 @@ func SignaturePharosHub(hub ParamHub) (interface{}, error) {
 		DOMAIN_PHAROS_SIGN_IN,
 		"",
 	}
-	request, err := doRequest(ctxTime, pay, payloadJson)
+	response, err := doRequest(ctxTime, pay, payloadJson)
 	if err != nil {
 		return nil, fmt.Errorf("cannot make request with payload %w", err)
 	}
 	var jwtHub ResponsePharosHub
-	if err := json.Unmarshal(request, &jwtHub); err != nil {
-		return nil, fmt.Errorf("cannot unmarshal response %w", err)
+	err = response.Decode(&jwtHub)
+	if err != nil {
+		return nil, fmt.Errorf("cannot decode response with payload %w", err)
 	}
 	return jwtHub, nil
 }
 
-func signSignature(hub ParamHub) ([]byte, error) {
-
-	baseTime := time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
-
-	nonce, err := hub.Provider.PendingNonceAt(hub.Ctx, ADDRESS)
-	if err != nil {
-		return nil, fmt.Errorf("get nonce failed: %v", err)
-	}
-
+func signSignature(hub *ParamHub, baseTime string, nonce uint64) ([]byte, error) {
 	message := fmt.Sprintf(`testnet.pharosnetwork.xyz wants you to sign in with your Ethereum account:
 %s
 
@@ -103,18 +97,12 @@ Issued At: %s`, ADDRESS.Hex(), strconv.FormatUint(nonce, 10), baseTime)
 	}
 	return signature, nil
 }
-func SendNativePhrs(param ParamHub, des string) (string, error) {
-	ctxTime, cancel := context.WithTimeout(param.Ctx, 20*time.Second)
-	defer cancel()
-	gasPrice, err := param.Provider.SuggestGasPrice(ctxTime)
+func SendNativePhrs(param *ParamHub, des string, nonce uint64) (string, error) {
+	gasPrice, err := param.Provider.SuggestGasPrice(param.Ctx)
 	if err != nil {
 		return "", fmt.Errorf("get gas price failed: %v", err)
 	}
-	nonce, err := param.Provider.PendingNonceAt(context.Background(), ADDRESS)
-	if err != nil {
-		return "", fmt.Errorf("get nonce failed: %v", err)
-	}
-	rand.NewSource(time.Now().UnixNano())
+
 	gasLimit := uint64(21000)
 	defaults := gachaPhrs()
 	toDes := common.HexToAddress(des)
@@ -131,11 +119,11 @@ func SendNativePhrs(param ParamHub, des string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("sign tx failed: %v", err)
 	}
-	err = param.Provider.SendTransaction(ctxTime, signTx)
+	err = param.Provider.SendTransaction(param.Ctx, signTx)
 	if err != nil {
 		return "", fmt.Errorf("send tx failed: %v", err)
 	}
-	rep, err := bind.WaitMined(ctxTime, param.Provider, signTx)
+	rep, err := bind.WaitMined(param.Ctx, param.Provider, signTx)
 	if err != nil {
 		return "", fmt.Errorf("check tx failed: %v", err)
 	}
@@ -143,6 +131,9 @@ func SendNativePhrs(param ParamHub, des string) (string, error) {
 		return "", fmt.Errorf("check tx failed: tx not confirmed %w", rep.TxHash)
 	}
 	return signTx.Hash().Hex(), nil
+}
+func freshNonce(ctx context.Context, addr string) uint64 {
+	return 0
 }
 func gachaPhrs() *big.Int {
 	val := []int64{
@@ -204,7 +195,7 @@ func VerifyTransferTask(ctx context.Context, txHash string) (*PharosTaskResult, 
 	}
 
 	var result PharosTaskResult
-	err = json.Unmarshal(res, &result)
+	err = res.Decode(&result)
 	if err != nil {
 		return nil, fmt.Errorf("cannot unmarshal result %w", err)
 	}

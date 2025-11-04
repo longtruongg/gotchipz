@@ -6,8 +6,6 @@ import (
 	"log"
 	"main/cfg"
 
-	"time"
-
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
@@ -22,25 +20,14 @@ func main() {
 		log.Fatalf("can not read prikey %s", err)
 	}
 
-	param := cfg.ParamHub{
+	param := &cfg.ParamHub{
 		Ctx:      ctx,
 		Provider: provider,
 		Key:      prik,
 	}
-
-	for _, addr := range cfg.ReadAddrs() {
-
-		time.AfterFunc(5*time.Second, func() {
-			txHash, err := cfg.SendNativePhrs(param, addr)
-			if err != nil {
-				log.Fatalf("failed to send phrs %s", err)
-			}
-			task, err := cfg.VerifyTransferTask(ctx, txHash)
-			if err != nil {
-				log.Fatalf("failed to verify transfer %s", err)
-			}
-			fmt.Println(task)
-		})
+	hub, err := cfg.SignaturePharosHub(param)
+	if err != nil {
+		log.Fatalf("can not create pharos hub %v", err)
 	}
-	select {}
+	fmt.Println("pharos hub created", hub)
 }
