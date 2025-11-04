@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	provider, err := ethclient.Dial(cfg.ATLANTIC)
+	provider, err := ethclient.Dial(cfg.PharosGotChips)
 	if err != nil {
 		log.Fatalf("Failed to connect to Ethereum client: %v", err)
 	}
@@ -25,9 +25,9 @@ func main() {
 		Provider: provider,
 		Key:      prik,
 	}
-	hub, err := cfg.SignaturePharosHub(param)
+	res, err := cfg.GenSignatureGotchipus(param, cfg.CLAIM_WEARABLE)
 	if err != nil {
-		log.Fatalf("can not create pharos hub %v", err)
+		log.Fatalf("cannot getn 0 %s", err)
 	}
-	fmt.Println("pharos hub created", hub)
+	fmt.Println(res)
 }

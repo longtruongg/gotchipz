@@ -23,7 +23,6 @@ import (
 
 var count = 0 // 91  = task done
 
-// SignaturePharosHub todo verify sign by etherscan it work, but server always return mismatch address :/
 func SignaturePharosHub(hub *ParamHub) (interface{}, error) {
 	ctxTime, cancel := context.WithTimeout(hub.Ctx, 20*time.Second)
 	defer cancel()
@@ -31,10 +30,9 @@ func SignaturePharosHub(hub *ParamHub) (interface{}, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get nonce failed: %v", err)
 	}
-
 	checksumAddr := common.HexToAddress(ADDRESS.Hex()).Hex()
 	baseTime := time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
-	signature, err := signSignature(hub, baseTime, nonce)
+	signature, err := dataSign(hub, baseTime, nonce)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign signature: %w", err)
 	}
@@ -68,10 +66,29 @@ func SignaturePharosHub(hub *ParamHub) (interface{}, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot decode response with payload %w", err)
 	}
-	return jwtHub, nil
+	err = SaveBear(jwtHub.Data.Jwt)
+	if err != nil {
+		return nil, fmt.Errorf("cannot save jwt with payload %w", err)
+	}
+	return jwtHub.Msg, nil
 }
-
-func signSignature(hub *ParamHub, baseTime string, nonce uint64) ([]byte, error) {
+func LoadBearToken() error {
+	data, err := os.ReadFile(PHAROS_BEAR)
+	if err != nil {
+		return fmt.Errorf("cannot read file bearer token %w", err)
+	}
+	BEAR = string(data)
+	log.Printf("Loaded existing token (length: %d)", len(BEAR))
+	return nil
+}
+func SaveBear(data string) error {
+	err := os.WriteFile(PHAROS_BEAR, []byte(data), 0600)
+	if err != nil {
+		return fmt.Errorf("cannot save bear_token: %w", err)
+	}
+	return nil
+}
+func dataSign(hub *ParamHub, baseTime string, nonce uint64) ([]byte, error) {
 	message := fmt.Sprintf(`testnet.pharosnetwork.xyz wants you to sign in with your Ethereum account:
 %s
 
@@ -102,7 +119,6 @@ func SendNativePhrs(param *ParamHub, des string, nonce uint64) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("get gas price failed: %v", err)
 	}
-
 	gasLimit := uint64(21000)
 	defaults := gachaPhrs()
 	toDes := common.HexToAddress(des)
@@ -168,9 +184,29 @@ func CheckInPharos(addr string) error {
 	if err != nil {
 		return fmt.Errorf("can not make request with payloadSign %w", err)
 	}
+	checkTime := time.Now().UTC()
+	err = SaveLastChecked(checkTime)
+	if err != nil {
+		return fmt.Errorf("save_last_checked failed: %v", err)
+	}
 	return nil
 }
+func SaveLastChecked(tim time.Time) error {
+	current := tim.UTC().Format(time.RFC3339)
+	return os.WriteFile(PHAROS_CHECKIN_TIME, []byte(current), 0644)
+}
 
+func ShouldCheckin() (bool, error) {
+	txt, err := os.ReadFile(PHAROS_CHECKIN_TIME)
+	if err != nil {
+		return false, fmt.Errorf("read last checkin failed: %v", err)
+	}
+	lastTime, err := time.Parse(time.RFC3339, string(txt))
+	if err != nil {
+		return false, fmt.Errorf("parse last checkin failed: %v", err)
+	}
+	return time.Since(lastTime) >= 24*time.Hour, nil
+}
 func VerifyTransferTask(ctx context.Context, txHash string) (*PharosTaskResult, error) {
 
 	ctxTime, cancel := context.WithTimeout(ctx, 10*time.Second)

@@ -13,28 +13,28 @@ import (
 	"os"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 var X_FILE = "x_ids.txt"
 
-func GenSignature(ctx context.Context, provider *ethclient.Client, data string, prik *ecdsa.PrivateKey) (*types.Transaction, error) {
-	ctxTime, cancel := context.WithTimeout(ctx, 5*time.Second)
+func GenSignatureGotchipus(param *ParamHub, data string) (bool, error) {
+	ctxTime, cancel := context.WithTimeout(param.Ctx, 5*time.Second)
 	defer cancel()
-	nonce, err := provider.PendingNonceAt(ctxTime, ADDRESS)
+	nonce, err := param.Provider.PendingNonceAt(ctxTime, ADDRESS)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get nonce: %v", err)
+		return false, fmt.Errorf("failed to get nonce: %v", err)
 	}
-	gasPrice, err := provider.SuggestGasPrice(ctxTime)
+	gasPrice, err := param.Provider.SuggestGasPrice(ctxTime)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get gasprice: %v", err)
+		return false, fmt.Errorf("failed to get gasprice: %v", err)
 	}
-	chainId, err := provider.ChainID(ctxTime)
+	chainId, err := param.Provider.ChainID(ctxTime)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get chainid: %v", err)
+		return false, fmt.Errorf("failed to get chainid: %v", err)
 	}
 	tx := types.NewTx(&types.LegacyTx{
 		Nonce:    nonce,
@@ -44,8 +44,19 @@ func GenSignature(ctx context.Context, provider *ethclient.Client, data string, 
 		Gas:      300000,
 		GasPrice: gasPrice,
 	})
-	defer provider.Client().Close()
-	return types.SignTx(tx, types.LatestSignerForChainID(chainId), prik)
+	signTx, err := types.SignTx(tx, types.LatestSignerForChainID(chainId), param.Key)
+	if err != nil {
+		return false, fmt.Errorf("failed to sign tx: %v", err)
+	}
+	err = param.Provider.SendTransaction(ctxTime, signTx)
+	if err != nil {
+		return false, fmt.Errorf("failed to send tx: %v", err)
+	}
+	mined, err := bind.WaitMined(ctxTime, param.Provider, signTx.Hash())
+	if err != nil {
+		return false, fmt.Errorf("failed to mined tx: %v", err)
+	}
+	return mined.Status == 1, nil
 }
 func ReadKey() (*ecdsa.PrivateKey, error) {
 	str, err := os.ReadFile(".env")

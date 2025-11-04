@@ -15,4 +15,7 @@ var (
 	PHAROS_CHECKIN        = "https://api.pharosnetwork.xyz/sign/in"
 	VERIFY_TX_TRANSFER    = "https://api.pharosnetwork.xyz/task/verify"
 	BEAR                  = ""
+	PHAROS_CHECKIN_TIME   = "pharos_last_check.txt"
+	PHAROS_BEAR           = "pharos_bear.txt"
+	GOTCHIPUS_CHECKIN     = "https://gotchipus.com/api/tasks/checkin"
 )
