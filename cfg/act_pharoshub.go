@@ -3,6 +3,7 @@ package cfg
 import (
 	"bufio"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -11,9 +12,11 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -22,6 +25,11 @@ import (
 )
 
 var count = 0 // 91  = task done
+var (
+	DEFAUL_USDT = 10000000
+	//DEFAULT_CASH
+)
+var subscribeABI = `[{"inputs":[{"internalType":"address","name":"uAddress","type":"address"},{"internalType":"uint256","name":"uAmount","type":"uint256"}],"name":"subscribe","outputs":[],"stateMutability":"nonpayable","type":"function"}]`
 
 func SignaturePharosHub(hub *ParamHub) (interface{}, error) {
 	ctxTime, cancel := context.WithTimeout(hub.Ctx, 20*time.Second)
@@ -114,21 +122,42 @@ Issued At: %s`, ADDRESS.Hex(), strconv.FormatUint(nonce, 10), baseTime)
 	}
 	return signature, nil
 }
-func SendNativePhrs(param *ParamHub, des string, nonce uint64) (string, error) {
+
+type dataHub struct {
+	gasLimit, nonce uint64
+	gasPrice        *big.Int
+}
+
+func fetchGas(param *ParamHub) (*dataHub, error) {
 	gasPrice, err := param.Provider.SuggestGasPrice(param.Ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get gas price failed: %v", err)
+	}
+	nonce, err := param.Provider.PendingNonceAt(param.Ctx, ADDRESS)
+	if err != nil {
+		return nil, fmt.Errorf("get nonce failed: %v", err)
+	}
+	return &dataHub{
+		gasLimit: uint64(21000),
+		gasPrice: gasPrice,
+		nonce:    nonce,
+	}, nil
+
+}
+func SendNativePhrs(param *ParamHub, des string, nonce uint64) (string, error) {
+	hub, err := fetchGas(param)
 	if err != nil {
 		return "", fmt.Errorf("get gas price failed: %v", err)
 	}
-	gasLimit := uint64(21000)
 	defaults := gachaPhrs()
 	toDes := common.HexToAddress(des)
 	tx := types.NewTx(
 		&types.LegacyTx{
 			Nonce:    nonce,
 			To:       &toDes,
-			GasPrice: gasPrice,
+			GasPrice: hub.gasPrice,
 			Value:    defaults,
-			Gas:      gasLimit,
+			Gas:      hub.gasLimit,
 		},
 	)
 	signTx, err := types.SignTx(tx, types.NewEIP155Signer(big.NewInt(688689)), param.Key)
@@ -147,6 +176,59 @@ func SendNativePhrs(param *ParamHub, des string, nonce uint64) (string, error) {
 		return "", fmt.Errorf("check tx failed: tx not confirmed %w", rep.TxHash)
 	}
 	return signTx.Hash().Hex(), nil
+}
+
+// todo
+// got encoded calldata.
+func AssetoSubcribe(param *ParamHub) error {
+
+	hub, err := fetchGas(param)
+	if err != nil {
+		return fmt.Errorf("get gas value got : %v", err)
+	}
+	data := buildSubscribeCalldata(USDT_ATLTIC)
+	rs, _ := hex.DecodeString(string(data[2:]))
+	toAddr := common.HexToAddress(CASH_ATLTIC)
+	tx := types.NewTx(
+		&types.LegacyTx{
+			Nonce:    hub.nonce,
+			GasPrice: hub.gasPrice,
+			Gas:      hub.gasLimit,
+			To:       &toAddr,
+			Value:    big.NewInt(0),
+			Data:     rs,
+		})
+	auth, err := bind.NewKeyedTransactorWithChainID(param.Key, big.NewInt(688689))
+	if err != nil {
+		return fmt.Errorf("get auth got : %v", err)
+	}
+	signTx, err := auth.Signer(auth.From, tx)
+	err = param.Provider.SendTransaction(param.Ctx, signTx)
+	if err != nil {
+		return fmt.Errorf("send tx failed: %v", err)
+	}
+	fmt.Printf("Full calldata: 0x%x\n", buildSubscribeCalldata(USDT_ATLTIC))
+	mined, err := bind.WaitMined(param.Ctx, param.Provider, signTx)
+	if err != nil {
+		return fmt.Errorf("check tx failed: %v", err)
+	}
+	if mined.Status == 0 {
+		return fmt.Errorf("check tx failed: tx not confirmed %w", mined.TxHash)
+	}
+	return nil
+}
+func buildSubscribeCalldata(uAddressHex string) []byte {
+	contractABI, err := abi.JSON(strings.NewReader(subscribeABI))
+	if err != nil {
+		log.Fatal(err)
+	}
+	uAmount := big.NewInt(10000000) // This equals 0x989680
+	// Pack the function call
+	data, err := contractABI.Pack("subscribe", common.HexToAddress(uAddressHex), uAmount)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return data
 }
 func freshNonce(ctx context.Context, addr string) uint64 {
 	return 0

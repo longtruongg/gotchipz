@@ -2,15 +2,15 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
+
 	"main/cfg"
 
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 func main() {
-	provider, err := ethclient.Dial(cfg.PharosGotChips)
+	provider, err := ethclient.Dial(cfg.ATLANTIC)
 	if err != nil {
 		log.Fatalf("Failed to connect to Ethereum client: %v", err)
 	}
@@ -25,9 +25,9 @@ func main() {
 		Provider: provider,
 		Key:      prik,
 	}
-	res, err := cfg.GenSignatureGotchipus(param, cfg.CLAIM_WEARABLE)
+	err = cfg.AssetoSubcribe(param)
 	if err != nil {
 		log.Fatalf("cannot getn 0 %s", err)
 	}
-	fmt.Println(res)
+
 }

@@ -9,6 +9,7 @@ var (
 	MINT_METHOD_ID        = "5b70ea9f" //avoid 0x
 	CLAIM_WEARABLE        = "0677781a"
 	PET                   = "a07d7972"
+	SUBSCRIBE_METHOD      = "8de69284"
 	ADDRESS               = common.HexToAddress("0xa8bf05d0881a225EB466175E37D60F96D65Ca1f6")
 	DOMAIN_PHAROS         = "https://testnet.pharosnetwork.xyz"
 	DOMAIN_PHAROS_SIGN_IN = "https://api.pharosnetwork.xyz/user/login"
@@ -18,4 +19,6 @@ var (
 	PHAROS_CHECKIN_TIME   = "pharos_last_check.txt"
 	PHAROS_BEAR           = "pharos_bear.txt"
 	GOTCHIPUS_CHECKIN     = "https://gotchipus.com/api/tasks/checkin"
+	CASH_ATLTIC           = "0x56f4add11d723412d27a9e9433315401b351d6e3"
+	USDT_ATLTIC           = "0xe7e84b8b4f39c507499c40b4ac199b050e2882d5"
 )
