@@ -3,7 +3,6 @@ package cfg
 import (
 	"bufio"
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -24,21 +23,16 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-var count = 0 // 91  = task done
-var (
-	DEFAUL_USDT = 10000000
-	//DEFAULT_CASH
-)
 var subscribeABI = `[{"inputs":[{"internalType":"address","name":"uAddress","type":"address"},{"internalType":"uint256","name":"uAmount","type":"uint256"}],"name":"subscribe","outputs":[],"stateMutability":"nonpayable","type":"function"}]`
 
 func SignaturePharosHub(hub *ParamHub) (interface{}, error) {
 	ctxTime, cancel := context.WithTimeout(hub.Ctx, 20*time.Second)
 	defer cancel()
+	defer hub.Provider.Close()
 	nonce, err := hub.Provider.PendingNonceAt(ctxTime, ADDRESS)
 	if err != nil {
 		return nil, fmt.Errorf("get nonce failed: %v", err)
 	}
-	checksumAddr := common.HexToAddress(ADDRESS.Hex()).Hex()
 	baseTime := time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
 	signature, err := dataSign(hub, baseTime, nonce)
 	if err != nil {
@@ -46,7 +40,7 @@ func SignaturePharosHub(hub *ParamHub) (interface{}, error) {
 	}
 
 	payload := &PayloadSign{
-		Address:   checksumAddr,
+		Address:   ADDRESS.Hex(),
 		ChainID:   "688689",
 		Domain:    "testnet.pharosnetwork.xyz",
 		Nonce:     strconv.FormatUint(nonce, 10),
@@ -54,8 +48,7 @@ func SignaturePharosHub(hub *ParamHub) (interface{}, error) {
 		Timestamp: baseTime,
 		Wallet:    "MetaMask",
 	}
-	log.Printf("Final Address: %s\n", payload.Address)
-	log.Printf("Final Signature: %s\n", payload.Signature)
+
 	payloadJson, err := json.Marshal(payload)
 	if err != nil {
 		return nil, fmt.Errorf("cannot marshal payloadSign %w", err)
@@ -137,6 +130,7 @@ func fetchGas(param *ParamHub) (*dataHub, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get nonce failed: %v", err)
 	}
+	defer param.Provider.Close()
 	return &dataHub{
 		gasLimit: uint64(21000),
 		gasPrice: gasPrice,
@@ -144,7 +138,7 @@ func fetchGas(param *ParamHub) (*dataHub, error) {
 	}, nil
 
 }
-func SendNativePhrs(param *ParamHub, des string, nonce uint64) (string, error) {
+func SendNativePhrs(param *ParamHub, des string) (string, error) {
 	hub, err := fetchGas(param)
 	if err != nil {
 		return "", fmt.Errorf("get gas price failed: %v", err)
@@ -153,7 +147,7 @@ func SendNativePhrs(param *ParamHub, des string, nonce uint64) (string, error) {
 	toDes := common.HexToAddress(des)
 	tx := types.NewTx(
 		&types.LegacyTx{
-			Nonce:    nonce,
+			Nonce:    hub.nonce,
 			To:       &toDes,
 			GasPrice: hub.gasPrice,
 			Value:    defaults,
@@ -164,6 +158,8 @@ func SendNativePhrs(param *ParamHub, des string, nonce uint64) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("sign tx failed: %v", err)
 	}
+	<-time.After(time.Second * 10)
+	log.Print("waiting 10s")
 	err = param.Provider.SendTransaction(param.Ctx, signTx)
 	if err != nil {
 		return "", fmt.Errorf("send tx failed: %v", err)
@@ -175,6 +171,7 @@ func SendNativePhrs(param *ParamHub, des string, nonce uint64) (string, error) {
 	if rep.Status == 0 {
 		return "", fmt.Errorf("check tx failed: tx not confirmed %w", rep.TxHash)
 	}
+	defer param.Provider.Close()
 	return signTx.Hash().Hex(), nil
 }
 
@@ -187,7 +184,6 @@ func AssetoSubcribe(param *ParamHub) error {
 		return fmt.Errorf("get gas value got : %v", err)
 	}
 	data := buildSubscribeCalldata(USDT_ATLTIC)
-	rs, _ := hex.DecodeString(string(data[2:]))
 	toAddr := common.HexToAddress(CASH_ATLTIC)
 	tx := types.NewTx(
 		&types.LegacyTx{
@@ -196,25 +192,28 @@ func AssetoSubcribe(param *ParamHub) error {
 			Gas:      hub.gasLimit,
 			To:       &toAddr,
 			Value:    big.NewInt(0),
-			Data:     rs,
+			Data:     data,
 		})
 	auth, err := bind.NewKeyedTransactorWithChainID(param.Key, big.NewInt(688689))
 	if err != nil {
 		return fmt.Errorf("get auth got : %v", err)
 	}
 	signTx, err := auth.Signer(auth.From, tx)
+	if err != nil {
+		return fmt.Errorf("authSign tx failed: %v", err)
+	}
 	err = param.Provider.SendTransaction(param.Ctx, signTx)
 	if err != nil {
 		return fmt.Errorf("send tx failed: %v", err)
 	}
-	fmt.Printf("Full calldata: 0x%x\n", buildSubscribeCalldata(USDT_ATLTIC))
 	mined, err := bind.WaitMined(param.Ctx, param.Provider, signTx)
 	if err != nil {
 		return fmt.Errorf("check tx failed: %v", err)
 	}
 	if mined.Status == 0 {
-		return fmt.Errorf("check tx failed: tx not confirmed %w", mined.TxHash)
+		return fmt.Errorf("check tx failed: tx not confirmed %w", mined.TxHash.Hex())
 	}
+	defer param.Provider.Close()
 	return nil
 }
 func buildSubscribeCalldata(uAddressHex string) []byte {
@@ -237,16 +236,15 @@ func gachaPhrs() *big.Int {
 	val := []int64{
 		10000000000000,
 		30000000000000,
-		500000000000000,
+		5000000000000,
 		40000000000001,
 		10000000000006,
 		20000000000009,
 		30000000020000,
+		110000020000,
 	}
 	rand.NewSource(time.Now().UnixNano())
-
-	x := val[rand.Intn(len(val))]
-	return big.NewInt(x)
+	return big.NewInt(val[rand.Intn(len(val))])
 }
 func CheckInPharos(addr string) error {
 	payload := struct {
@@ -317,10 +315,6 @@ func VerifyTransferTask(ctx context.Context, txHash string) (*PharosTaskResult, 
 	if err != nil {
 		return nil, fmt.Errorf("cannot unmarshal result %w", err)
 	}
-	if result.Code == 0 {
-		count++
-	}
-
 	return &result, nil
 }
 func ReadAddrs() []string {
