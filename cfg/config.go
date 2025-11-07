@@ -21,4 +21,6 @@ var (
 	GOTCHIPUS_CHECKIN     = "https://gotchipus.com/api/tasks/checkin"
 	CASH_ATLTIC           = "0x56f4add11d723412d27a9e9433315401b351d6e3"
 	USDT_ATLTIC           = "0xe7e84b8b4f39c507499c40b4ac199b050e2882d5"
+	ARC                   = common.HexToAddress("0x0000000038f050528452d6da1e7aacfa7b3ec0a8")
+ArcUrl="https://rpc.testnet.arc.network"
 )

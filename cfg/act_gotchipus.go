@@ -21,6 +21,7 @@ import (
 
 var X_FILE = "x_ids.txt"
 
+// todo change logic after
 func GenSignatureGotchipus(param *ParamHub, data string) (bool, error) {
 	ctxTime, cancel := context.WithTimeout(param.Ctx, 5*time.Second)
 	defer cancel()

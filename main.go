@@ -7,17 +7,16 @@ import (
 	"time"
 
 	"main/cfg"
+
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 func main() {
-	xRPC := []string{
-		cfg.ATLANTIC,
-		cfg.PharosGotChips,
+	
+	provider, err := ethclient.Dial(cfg.ArcUrl)
+	if err != nil {
+		log.Fatalf("Failed to connect to Ethereum client: %v", err)
 	}
-	//provider, err := ethclient.Dial(cfg.ATLANTIC)
-	//if err != nil {
-	//	log.Fatalf("Failed to connect to Ethereum client: %v", err)
-	//}
 	ctx := context.Background()
 	prik, err := cfg.ReadKey()
 	if err != nil {
@@ -27,13 +26,10 @@ func main() {
 	param := &cfg.ParamHub{
 		Ctx: ctx,
 		Key: prik,
+		Provider: provider,
 	}
-	service, err := cfg.NewClientService(param, xRPC)
-	if err != nil {
-		log.Fatalf("can not create service %s", err)
-	}
-	param.Provider = service.GetCurrentClient()
-	_, err = cfg.SendNativePhrs(param, "0x13f78c79df91419edf23db8cd135b220c1964581")
+	
+	_, err = cfg.SayGm(param, "morning gangs")
 	if err != nil {
 		log.Printf("can not send phrs %s", err)
 	}
