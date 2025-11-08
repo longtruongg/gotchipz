@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"math/rand"
 	"time"
@@ -29,10 +30,11 @@ func main() {
 		Provider: provider,
 	}
 	
-	_, err = cfg.SayGm(param, "morning gangs")
+	e, err := cfg.Counter(param,cfg.ARC_COUNTER_METHODD)
 	if err != nil {
 		log.Printf("can not send phrs %s", err)
 	}
+	fmt.Print(e)
 	//c := cron.New(cron.WithLogger(
 	//	cron.DefaultLogger))
 	//rand.NewSource(time.Now().UnixNano())

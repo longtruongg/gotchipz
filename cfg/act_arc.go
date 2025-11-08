@@ -1,14 +1,13 @@
 package cfg
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/v2"
-	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 var arcABI =`[
@@ -698,28 +697,8 @@ func SayGm(param *ParamHub,text string)(string,error) {
    if err!=nil{
     return "",fmt.Errorf("sayGm got %w",err)
    }
-   value,err:=fetchGas(param)
-   if err!=nil{
-    return "",fmt.Errorf("sayGm_ fetchGast %w",err)
-   }
-tx:=types.NewTx(
-  &types.LegacyTx{
-    To:   &ARC,
-    Gas:  uint64(25000),
-    Value: big.NewInt(0),
-    Data: data,
-  GasPrice: value.gasPrice,
-  Nonce: value.nonce,
-})
-
-signTx,err:=types.SignTx(tx,types.LatestSignerForChainID(big.NewInt(5042002)),param.Key)
-  if err!=nil{
-    return "",fmt.Errorf("signTx got %w",err)
-   }
-   err=param.Provider.SendTransaction(context.Background(),signTx)
-   if err!=nil{
-    return "",fmt.Errorf("sayGm got %w",err)
-   }
+ 
+signTx,err:=SignTxData(param,ARC.Hex(),data,big.NewInt(0))
    mined,err:=bind.WaitMined(param.Ctx,param.Provider,signTx.Hash())
    if err!=nil{
     return "",fmt.Errorf("track tx got %w",err)
@@ -727,7 +706,8 @@ signTx,err:=types.SignTx(tx,types.LatestSignerForChainID(big.NewInt(5042002)),pa
    if mined.Status==0{
     return "",fmt.Errorf("track tx got %w",err)
    }
-  return "Hello, GM!", nil
+   fmt.Println(string(signTx.Data()))
+  return string(signTx.Data()), nil
 }
 func buildGmCalldata(text string)( []byte,error)  {
   gmaABI,err:=abi.JSON(strings.NewReader(arcABI))
@@ -739,4 +719,21 @@ if err!=nil{
     return nil, fmt.Errorf("buildGmCalldata_pack failed: %v", err)
   }
   return calldata,nil
+}
+
+func Counter(param *ParamHub,data string)(string,error){
+  dataByte:=common.Hex2Bytes(data)
+x:=big.NewInt(10000000000000000)
+   tx,err:=SignTxData(param,ARC_COUNTER,dataByte,x)
+   if err!=nil{
+    return "",fmt.Errorf("Counter got %w",err)
+   }
+   mined,err:=bind.WaitMined(param.Ctx,param.Provider,tx.Hash())
+   if err!=nil{
+    return "",fmt.Errorf("track tx got %w",err)
+   }
+   if mined.Status==0{
+    return "",fmt.Errorf("track tx got %w",err)
+   }
+   return tx.Hash().String(), nil
 }

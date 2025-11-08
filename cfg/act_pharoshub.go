@@ -130,9 +130,10 @@ func fetchGas(param *ParamHub) (*dataHub, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get nonce failed: %v", err)
 	}
+
 	defer param.Provider.Close()
 	return &dataHub{
-		gasLimit: uint64(21000),
+		gasLimit: uint64(66000),
 		gasPrice: gasPrice,
 		nonce:    nonce,
 	}, nil
