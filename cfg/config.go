@@ -23,4 +23,6 @@ var (
 	USDT_ATLTIC           = "0xe7e84b8b4f39c507499c40b4ac199b050e2882d5"
 	ARC                   = common.HexToAddress("0x0000000038f050528452d6da1e7aacfa7b3ec0a8")
 ArcUrl="https://rpc.testnet.arc.network"
+ARC_COUNTER="0xfcF1E3e7890559c56013457e7073791ed27060a1"
+ARC_COUNTER_METHODD="5b34b966"
 )
