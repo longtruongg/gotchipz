@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	
+
 	provider, err := ethclient.Dial(cfg.ArcUrl)
 	if err != nil {
 		log.Fatalf("Failed to connect to Ethereum client: %v", err)
@@ -25,16 +25,20 @@ func main() {
 	}
 
 	param := &cfg.ParamHub{
-		Ctx: ctx,
-		Key: prik,
+		Ctx:      ctx,
+		Key:      prik,
 		Provider: provider,
 	}
-	
-	e, err := cfg.Counter(param,cfg.ARC_COUNTER_METHODD)
+
+	_, err = cfg.ArcCounter(param, cfg.ARC_COUNTER_METHODD)
 	if err != nil {
-		log.Printf("can not send phrs %s", err)
+		log.Fatalf("can not send : %v", err)
 	}
-	fmt.Print(e)
+	txt, err := cfg.ArcMintZkNFT(param)
+	if err != nil {
+		log.Fatalf("can not mint : %v", err)
+	}
+	fmt.Println(txt)
 	//c := cron.New(cron.WithLogger(
 	//	cron.DefaultLogger))
 	//rand.NewSource(time.Now().UnixNano())

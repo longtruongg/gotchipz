@@ -8,9 +8,13 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/v2"
 	"github.com/ethereum/go-ethereum/common"
+	_ "github.com/ethereum/go-ethereum/common/hexutil"
 )
 
-var arcABI =`[
+var mintABI = `[{"name":"mint","type":"function","inputs":[{"name":"amount","type":"uint256"}]}]`
+
+// arc chain base_fee : 0.05
+var arcABI = `[
   {
     "inputs": [
       {
@@ -692,48 +696,64 @@ var arcABI =`[
     "type": "receive"
   }
 ]`
-func SayGm(param *ParamHub,text string)(string,error) {
-   data,err:=buildGmCalldata(text)
-   if err!=nil{
-    return "",fmt.Errorf("sayGm got %w",err)
-   }
- 
-signTx,err:=SignTxData(param,ARC.Hex(),data,big.NewInt(0))
-   mined,err:=bind.WaitMined(param.Ctx,param.Provider,signTx.Hash())
-   if err!=nil{
-    return "",fmt.Errorf("track tx got %w",err)
-   }
-   if mined.Status==0{
-    return "",fmt.Errorf("track tx got %w",err)
-   }
-   fmt.Println(string(signTx.Data()))
-  return string(signTx.Data()), nil
-}
-func buildGmCalldata(text string)( []byte,error)  {
-  gmaABI,err:=abi.JSON(strings.NewReader(arcABI))
-if err!=nil{
- return nil, fmt.Errorf("buildGmCalldata failed: %v", err)
-}
-  calldata,err:=gmaABI.Pack("sayGM",text)
-  if err!=nil{
-    return nil, fmt.Errorf("buildGmCalldata_pack failed: %v", err)
-  }
-  return calldata,nil
-}
 
-func Counter(param *ParamHub,data string)(string,error){
-  dataByte:=common.Hex2Bytes(data)
-x:=big.NewInt(10000000000000000)
-   tx,err:=SignTxData(param,ARC_COUNTER,dataByte,x)
-   if err!=nil{
-    return "",fmt.Errorf("Counter got %w",err)
-   }
-   mined,err:=bind.WaitMined(param.Ctx,param.Provider,tx.Hash())
-   if err!=nil{
-    return "",fmt.Errorf("track tx got %w",err)
-   }
-   if mined.Status==0{
-    return "",fmt.Errorf("track tx got %w",err)
-   }
-   return tx.Hash().String(), nil
+func SayGm(param *ParamHub, text string) (string, error) {
+	data, err := buildGmCalldata(arcABI, "sayGM", text)
+	if err != nil {
+		return "", fmt.Errorf("sayGm got %w", err)
+	}
+	signTx, err := SignTxData(param, ARC_GM.Hex(), data, big.NewInt(0))
+	if err != nil {
+		return "", fmt.Errorf("sayGm got %w", err)
+	}
+	mined, err := bind.WaitMined(param.Ctx, param.Provider, signTx.Hash())
+	if err != nil {
+		return "", fmt.Errorf("track tx got %w", err)
+	}
+	if mined.Status == 0 {
+		return "", fmt.Errorf("track tx got %w", err)
+	}
+	fmt.Println(string(signTx.Data()))
+	return string(signTx.Data()), nil
+}
+func buildGmCalldata(abiString, method string, args interface{}) ([]byte, error) {
+	gmaABI, err := abi.JSON(strings.NewReader(abiString))
+	if err != nil {
+		return nil, fmt.Errorf("buildGmCalldata failed: %v", err)
+	}
+	calldata, err := gmaABI.Pack(method, args)
+	if err != nil {
+		return nil, fmt.Errorf("buildGmCalldata_pack failed: %v", err)
+	}
+	return calldata, nil
+}
+func ArcMintZkNFT(paramm *ParamHub) (string, error) {
+	x := big.NewInt(1)
+	data, err := buildGmCalldata(mintABI, "mint", x)
+	if err != nil {
+		return "", fmt.Errorf("buildGmCalldata mint func: %v", err)
+	}
+	value := new(big.Int).Mul(big.NewInt(0.5*1e18), big.NewInt(1))
+	signTx, err := SignTxData(paramm, ZKNFT, data, value)
+	if err != nil {
+		return "", fmt.Errorf("buildGmCalldata signdata: %v", err)
+	}
+
+	return signTx.Hash().Hex(), nil
+}
+func ArcCounter(param *ParamHub, data string) (string, error) {
+	dataByte := common.Hex2Bytes(data)
+	x := big.NewInt(10000000000000000)
+	tx, err := SignTxData(param, ARC_COUNTER, dataByte, x)
+	if err != nil {
+		return "", fmt.Errorf("ArcCounter got %w", err)
+	}
+	mined, err := bind.WaitMined(param.Ctx, param.Provider, tx.Hash())
+	if err != nil {
+		return "", fmt.Errorf("track tx got %w", err)
+	}
+	if mined.Status == 0 {
+		return "", fmt.Errorf("track tx got %w", err)
+	}
+	return tx.Hash().String(), nil
 }

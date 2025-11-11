@@ -23,7 +23,50 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-var subscribeABI = `[{"inputs":[{"internalType":"address","name":"uAddress","type":"address"},{"internalType":"uint256","name":"uAmount","type":"uint256"}],"name":"subscribe","outputs":[],"stateMutability":"nonpayable","type":"function"}]`
+var assetoABI = `[
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "spender",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "approve",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "uAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "uAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "subscribe",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]`
 
 func SignaturePharosHub(hub *ParamHub) (interface{}, error) {
 	ctxTime, cancel := context.WithTimeout(hub.Ctx, 20*time.Second)
@@ -130,10 +173,18 @@ func fetchGas(param *ParamHub) (*dataHub, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get nonce failed: %v", err)
 	}
-
+	number, err := param.Provider.BlockNumber(param.Ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get number failed: %v", err)
+	}
+	byNumber, err := param.Provider.BlockByNumber(param.Ctx, big.NewInt(int64(number)))
+	if err != nil {
+		return nil, fmt.Errorf("get block by number failed: %v", err)
+	}
+	limit := (byNumber.GasLimit() * 5) / 100
 	defer param.Provider.Close()
 	return &dataHub{
-		gasLimit: uint64(66000),
+		gasLimit: limit,
 		gasPrice: gasPrice,
 		nonce:    nonce,
 	}, nil
@@ -146,6 +197,7 @@ func SendNativePhrs(param *ParamHub, des string) (string, error) {
 	}
 	defaults := gachaPhrs()
 	toDes := common.HexToAddress(des)
+
 	tx := types.NewTx(
 		&types.LegacyTx{
 			Nonce:    hub.nonce,
@@ -178,14 +230,22 @@ func SendNativePhrs(param *ParamHub, des string) (string, error) {
 
 // todo
 // got encoded calldata.
-func AssetoSubcribe(param *ParamHub) error {
+var (
+	sub = "subscribe"
+	apr = "approve"
+)
 
+// didnt work, ;ahhhh:
+func AssetoSubcribe(param *ParamHub) error {
 	hub, err := fetchGas(param)
 	if err != nil {
 		return fmt.Errorf("get gas value got : %v", err)
 	}
-	data := buildSubscribeCalldata(USDT_ATLTIC)
-	toAddr := common.HexToAddress(CASH_ATLTIC)
+	data, err := buildCallData(USDT_ATLTIC, sub)
+	if err != nil {
+		return fmt.Errorf("get call data got : %v", err)
+	}
+	toAddr := common.HexToAddress("0x56f4add11d723412d27a9e9433315401b351d6e3")
 	tx := types.NewTx(
 		&types.LegacyTx{
 			Nonce:    hub.nonce,
@@ -214,21 +274,23 @@ func AssetoSubcribe(param *ParamHub) error {
 	if mined.Status == 0 {
 		return fmt.Errorf("check tx failed: tx not confirmed %w", mined.TxHash.Hex())
 	}
+
 	defer param.Provider.Close()
 	return nil
 }
-func buildSubscribeCalldata(uAddressHex string) []byte {
-	contractABI, err := abi.JSON(strings.NewReader(subscribeABI))
+
+func buildCallData(uAddressHex, method string) ([]byte, error) {
+	contractABI, err := abi.JSON(strings.NewReader(assetoABI))
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("get abi json failed: %v", err)
 	}
 	uAmount := big.NewInt(10000000) // This equals 0x989680
 	// Pack the function call
-	data, err := contractABI.Pack("subscribe", common.HexToAddress(uAddressHex), uAmount)
+	data, err := contractABI.Pack(method, common.HexToAddress(uAddressHex), uAmount)
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("get contract data got : %v", err)
 	}
-	return data
+	return data, nil
 }
 func freshNonce(ctx context.Context, addr string) uint64 {
 	return 0

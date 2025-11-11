@@ -21,8 +21,10 @@ var (
 	GOTCHIPUS_CHECKIN     = "https://gotchipus.com/api/tasks/checkin"
 	CASH_ATLTIC           = "0x56f4add11d723412d27a9e9433315401b351d6e3"
 	USDT_ATLTIC           = "0xe7e84b8b4f39c507499c40b4ac199b050e2882d5"
-	ARC                   = common.HexToAddress("0x0000000038f050528452d6da1e7aacfa7b3ec0a8")
-ArcUrl="https://rpc.testnet.arc.network"
-ARC_COUNTER="0xfcF1E3e7890559c56013457e7073791ed27060a1"
-ARC_COUNTER_METHODD="5b34b966"
+	ARC_GM                = common.HexToAddress("0x1290B4f2a419A316467b580a088453a233e9ADCc")
+	ArcUrl                = "https://rpc.testnet.arc.network"
+	ARC_COUNTER           = "0xfcF1E3e7890559c56013457e7073791ed27060a1"
+	ARC_COUNTER_METHODD   = "5b34b966"
+	ZKNFT                 = "0x96de58f6041d213198da2da15cabbcc771b3a490"
+	ZK_MINT               = "a0712d68"
 )
