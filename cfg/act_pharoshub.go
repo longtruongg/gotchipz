@@ -161,13 +161,17 @@ Issued At: %s`, ADDRESS.Hex(), strconv.FormatUint(nonce, 10), baseTime)
 
 type dataHub struct {
 	gasLimit, nonce uint64
-	gasPrice        *big.Int
+	gasPrice,chainId        *big.Int
 }
 
 func fetchGas(param *ParamHub) (*dataHub, error) {
 	gasPrice, err := param.Provider.SuggestGasPrice(param.Ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get gas price failed: %v", err)
+	}
+	chainId, err := param.Provider.ChainID(param.Ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get chain id failed: %v", err)
 	}
 	nonce, err := param.Provider.PendingNonceAt(param.Ctx, ADDRESS)
 	if err != nil {
@@ -187,10 +191,11 @@ func fetchGas(param *ParamHub) (*dataHub, error) {
 		gasLimit: limit,
 		gasPrice: gasPrice,
 		nonce:    nonce,
+		chainId: chainId,
 	}, nil
 
 }
-func SendNativePhrs(param *ParamHub, des string) (string, error) {
+func SendNativeToken(param *ParamHub, des string) (string, error) {
 	hub, err := fetchGas(param)
 	if err != nil {
 		return "", fmt.Errorf("get gas price failed: %v", err)
@@ -207,7 +212,7 @@ func SendNativePhrs(param *ParamHub, des string) (string, error) {
 			Gas:      hub.gasLimit,
 		},
 	)
-	signTx, err := types.SignTx(tx, types.NewEIP155Signer(big.NewInt(688689)), param.Key)
+	signTx, err := types.SignTx(tx, types.NewEIP155Signer(hub.chainId), param.Key)
 	if err != nil {
 		return "", fmt.Errorf("sign tx failed: %v", err)
 	}
