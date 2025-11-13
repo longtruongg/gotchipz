@@ -195,16 +195,18 @@ func fetchGas(param *ParamHub) (*dataHub, error) {
 	}, nil
 
 }
-func SendNativeToken(param *ParamHub, des string) (string, error) {
+func SendNativeToken(param *ParamHub, des string) ([]string, error) {
+	xList := []string{}
 	defaults := gachaPhrs()
 	tx, err := SignTxData(param,
 		des,
 		nil,
 		defaults)
 	if err != nil {
-		return "", fmt.Errorf("cannot sign tx: %w", err)
+		return nil, fmt.Errorf("cannot sign tx: %w", err)
 	}
-	return tx.Hash().Hex(), nil
+	xList = append(xList, tx.Hash().Hex())
+	return xList, nil
 }
 
 // todo

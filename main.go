@@ -15,7 +15,7 @@ import (
 
 func main() {
 
-	provider, err := ethclient.Dial(cfg.ArcUrl)
+	provider, err := ethclient.Dial(cfg.ATLANTIC)
 	if err != nil {
 		log.Fatalf("Failed to connect to Ethereum client: %v", err)
 	}
@@ -30,19 +30,19 @@ func main() {
 		Key:      prik,
 		Provider: provider,
 	}
-	_, err = cfg.SayGm(param, "moring gang")
-	if err != nil {
-		log.Printf("can not send : %v", err)
-	}
-	_, err = cfg.ArcCounter(param, cfg.ARC_COUNTER_METHODD)
-	if err != nil {
-		log.Fatalf("can not send : %v", err)
-	}
-	txt, err := cfg.ArcMintZkNFT(param)
-	if err != nil {
-		log.Fatalf("can not mint : %v", err)
-	}
-	fmt.Println(txt)
+	//_, err = cfg.SayGm(param, "moring gang")
+	//if err != nil {
+	//	log.Printf("can not send : %v", err)
+	//}
+	//_, err = cfg.ArcCounter(param, cfg.ARC_COUNTER_METHODD)
+	//if err != nil {
+	//	log.Println("can not send : %v", err)
+	//}
+	//txt, err := cfg.ArcMintZkNFT(param)
+	//if err != nil {
+	//	log.Println("can not mint : %v", err)
+	//}
+	//fmt.Println(txt)
 	c := cron.New(cron.WithLogger(
 		cron.DefaultLogger))
 	rand.NewSource(time.Now().UnixNano())
@@ -56,6 +56,7 @@ func main() {
 			fmt.Printf(" goldentime{ %s -> %s \n ", tx, x)
 		}
 	})
+
 	c.Run()
 
 }
@@ -63,16 +64,15 @@ func main() {
 func gachaGoldenTime() string {
 	var dummyTime = []string{
 		"@every 1m",
-		//"@every 12m",
+		"@every 12m",
 		"@every 5m",
 		"@every 3m",
 		"@every 7m",
 		"@every 9m",
-	//	"@every 30m",
-		//"@every 15m",
+		"@every 30m",
+		"@every 15m",
 		"@every 7m",
 	}
 	rand.NewSource(time.Now().UnixNano())
-	x := dummyTime[rand.Intn(len(dummyTime))]
-	return x
+	return dummyTime[rand.Intn(len(dummyTime))]
 }
