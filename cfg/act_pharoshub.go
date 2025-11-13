@@ -160,8 +160,8 @@ Issued At: %s`, ADDRESS.Hex(), strconv.FormatUint(nonce, 10), baseTime)
 }
 
 type dataHub struct {
-	gasLimit, nonce uint64
-	gasPrice,chainId        *big.Int
+	gasLimit, nonce   uint64
+	gasPrice, chainId *big.Int
 }
 
 func fetchGas(param *ParamHub) (*dataHub, error) {
@@ -191,46 +191,20 @@ func fetchGas(param *ParamHub) (*dataHub, error) {
 		gasLimit: limit,
 		gasPrice: gasPrice,
 		nonce:    nonce,
-		chainId: chainId,
+		chainId:  chainId,
 	}, nil
 
 }
 func SendNativeToken(param *ParamHub, des string) (string, error) {
-	hub, err := fetchGas(param)
-	if err != nil {
-		return "", fmt.Errorf("get gas price failed: %v", err)
-	}
 	defaults := gachaPhrs()
-	toDes := common.HexToAddress(des)
-
-	tx := types.NewTx(
-		&types.LegacyTx{
-			Nonce:    hub.nonce,
-			To:       &toDes,
-			GasPrice: hub.gasPrice,
-			Value:    defaults,
-			Gas:      hub.gasLimit,
-		},
-	)
-	signTx, err := types.SignTx(tx, types.NewEIP155Signer(hub.chainId), param.Key)
+	tx, err := SignTxData(param,
+		des,
+		nil,
+		defaults)
 	if err != nil {
-		return "", fmt.Errorf("sign tx failed: %v", err)
+		return "", fmt.Errorf("cannot sign tx: %w", err)
 	}
-	<-time.After(time.Second * 10)
-	log.Print("waiting 10s")
-	err = param.Provider.SendTransaction(param.Ctx, signTx)
-	if err != nil {
-		return "", fmt.Errorf("send tx failed: %v", err)
-	}
-	rep, err := bind.WaitMined(param.Ctx, param.Provider, signTx)
-	if err != nil {
-		return "", fmt.Errorf("check tx failed: %v", err)
-	}
-	if rep.Status == 0 {
-		return "", fmt.Errorf("check tx failed: tx not confirmed %w", rep.TxHash)
-	}
-	defer param.Provider.Close()
-	return signTx.Hash().Hex(), nil
+	return tx.Hash().Hex(), nil
 }
 
 // todo
