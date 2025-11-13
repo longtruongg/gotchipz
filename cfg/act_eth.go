@@ -1,7 +1,6 @@
 package cfg
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 
@@ -27,11 +26,7 @@ func SignTxData(hub *ParamHub, des string, data []byte, value *big.Int) (*types.
 			To:       &toDes,
 		},
 	)
-	chainId, err := hub.Provider.ChainID(context.Background())
-	if err != nil {
-		return nil, fmt.Errorf("cannot get chainId")
-	}
-	signTx, err := types.SignTx(tx, types.NewEIP155Signer(chainId), hub.Key)
+	signTx, err := types.SignTx(tx, types.NewEIP155Signer(gasValue.chainId), hub.Key)
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign tx")
 	}
