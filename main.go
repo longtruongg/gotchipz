@@ -30,19 +30,10 @@ func main() {
 		Key:      prik,
 		Provider: provider,
 	}
-	//_, err = cfg.SayGm(param, "moring gang")
-	//if err != nil {
-	//	log.Printf("can not send : %v", err)
-	//}
-	//_, err = cfg.ArcCounter(param, cfg.ARC_COUNTER_METHODD)
-	//if err != nil {
-	//	log.Println("can not send : %v", err)
-	//}
-	//txt, err := cfg.ArcMintZkNFT(param)
-	//if err != nil {
-	//	log.Println("can not mint : %v", err)
-	//}
-	//fmt.Println(txt)
+	err=cfg.LoadBearToken(); if err!=nil{
+		log.Fatalf("cannot load bear %w",err)
+	}
+	xList:=[]string{}
 	c := cron.New(cron.WithLogger(
 		cron.DefaultLogger))
 	rand.NewSource(time.Now().UnixNano())
@@ -53,10 +44,19 @@ func main() {
 			if err != nil {
 				log.Fatalf("can not send phrs %s", err)
 			}
-			fmt.Printf(" goldentime{ %s -> %s \n ", tx, x)
+			xList=tx
+			time.Sleep(10*time.Second)
+			
 		}
+		for _,val:=range xList{
+		tx,err:=cfg.VerifyTransferTask(param.Ctx,val)
+		if err!=nil{
+			log.Fatalf("cannot verify %w",err)
+		}
+		fmt.Println(tx)
+	}
 	})
-
+    
 	c.Run()
 
 }
@@ -64,14 +64,14 @@ func main() {
 func gachaGoldenTime() string {
 	var dummyTime = []string{
 		"@every 1m",
-		"@every 12m",
+		// "@every 12m",
 		"@every 5m",
 		"@every 3m",
-		"@every 7m",
-		"@every 9m",
-		"@every 30m",
-		"@every 15m",
-		"@every 7m",
+		// "@every 7m",
+		// "@every 9m",
+		// "@every 30m",
+		// "@every 15m",
+		// "@every 7m",
 	}
 	rand.NewSource(time.Now().UnixNano())
 	return dummyTime[rand.Intn(len(dummyTime))]

@@ -727,18 +727,18 @@ func buildGmCalldata(abiString, method string, args interface{}) ([]byte, error)
 	}
 	return calldata, nil
 }
+// max 5
 func ArcMintZkNFT(paramm *ParamHub) (string, error) {
-	x := big.NewInt(1)
+	x := big.NewInt(5)
 	data, err := buildGmCalldata(mintABI, "mint", x)
 	if err != nil {
 		return "", fmt.Errorf("buildGmCalldata mint func: %v", err)
 	}
-	value := new(big.Int).Mul(big.NewInt(0.5*1e18), big.NewInt(1))
+	value := new(big.Int).Mul(big.NewInt(0.5*1e18),x)
 	signTx, err := SignTxData(paramm, ZKNFT, data, value)
 	if err != nil {
 		return "", fmt.Errorf("buildGmCalldata signdata: %v", err)
 	}
-
 	return signTx.Hash().Hex(), nil
 }
 func ArcCounter(param *ParamHub, data string) (string, error) {

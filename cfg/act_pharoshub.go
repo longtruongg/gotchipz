@@ -163,7 +163,7 @@ type dataHub struct {
 	gasLimit, nonce   uint64
 	gasPrice, chainId *big.Int
 }
-
+//arc != pharos, gaslimmit issue
 func fetchGas(param *ParamHub) (*dataHub, error) {
 	gasPrice, err := param.Provider.SuggestGasPrice(param.Ctx)
 	if err != nil {
@@ -185,10 +185,11 @@ func fetchGas(param *ParamHub) (*dataHub, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get block by number failed: %v", err)
 	}
-	limit := (byNumber.GasLimit() * 5) / 100
+	// limit := (byNumber.GasLimit() * 5) / 100
 	defer param.Provider.Close()
+	log.Printf("after caculate gas :%d",byNumber.GasLimit())
 	return &dataHub{
-		gasLimit: limit,
+		gasLimit:23000,
 		gasPrice: gasPrice,
 		nonce:    nonce,
 		chainId:  chainId,
@@ -332,7 +333,7 @@ func ShouldCheckin() (bool, error) {
 	return time.Since(lastTime) >= 24*time.Hour, nil
 }
 func VerifyTransferTask(ctx context.Context, txHash string) (*PharosTaskResult, error) {
-
+   
 	ctxTime, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	pay := PayHub{
